@@ -4,9 +4,16 @@ from flask_cors import CORS
 import random
 from datetime import datetime, timedelta
 import csv
+import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
 CORS(app)
+
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
 
 # Load data from CSV file
 def load_city_data(file_path='indian_cities.csv'):
@@ -40,24 +47,43 @@ def load_city_data(file_path='indian_cities.csv'):
                         'mid': int(row['transport_cost_mid']),
                         'luxury': int(row['transport_cost_luxury'])
                     }
-                }
+                },
+                'lat': float(row['latitude']),
+                'lon': float(row['longitude'])
             }
     return cities
 
 indian_cities = load_city_data()
+
+def get_weather_forecast(lat, lon, date):
+    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHERMAP_API_KEY}&units=metric"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        for forecast in data['list']:
+            forecast_date = datetime.fromtimestamp(forecast['dt'])
+            if forecast_date.date() == date.date():
+                return {
+                    'temperature': forecast['main']['temp'],
+                    'description': forecast['weather'][0]['description'],
+                    'icon': forecast['weather'][0]['icon']
+                }
+    return None
 
 def generate_itinerary(source, destination, num_days, cost_option):
     itinerary = []
     current_date = datetime.now()
 
     for day in range(1, num_days + 1):
+        weather = get_weather_forecast(indian_cities[destination]['lat'], indian_cities[destination]['lon'], current_date)
         daily_plan = {
             "day": day,
             "date": current_date.strftime("%Y-%m-%d"),
             "activities": random.sample(indian_cities[destination]["attractions"], 2),
             "hotel": indian_cities[destination]["hotels"][cost_option],
             "restaurant": random.choice(indian_cities[destination]["restaurants"]),
-            "transport": random.choice(indian_cities[destination]["transport"])
+            "transport": random.choice(indian_cities[destination]["transport"]),
+            "weather": weather
         }
         itinerary.append(daily_plan)
         current_date += timedelta(days=1)
