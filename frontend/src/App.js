@@ -199,6 +199,17 @@ export default function TravelItineraryGenerator() {
                   <p>
                     <strong>Transport:</strong> {day.transport}
                   </p>
+                  {day.weather && (
+                    <p>
+                      <strong>Weather:</strong> {day.weather.temperature}°C,{" "}
+                      {day.weather.description}
+                      <img
+                        src={`http://openweathermap.org/img/w/${day.weather.icon}.png`}
+                        alt={day.weather.description}
+                        style={{ verticalAlign: "middle", marginLeft: "5px" }}
+                      />
+                    </p>
+                  )}
                 </div>
               </div>
             ))
